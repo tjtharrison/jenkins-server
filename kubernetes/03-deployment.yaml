@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  selector:
+    matchLabels:
+      app: jenkins
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      imagePullSecrets:
+        - name: gcp-registry
+      containers:
+      - name: jenkins
+        imagePullPolicy: IfNotPresent
+        image: eu.gcr.io/jenkins-server:2.13
+        ports:
+          - containerPort: 8080
+        volumeMounts:
+         - name: jenkins-data
+           mountPath: /var/jenkins_home
+         - name: jenkins-backups
+           mountPath: /mnt/backups
+         - mountPath: /var/run/docker.sock
+           name: docker-socket-volume
+        securityContext:
+          privileged: true
+      volumes:
+        - name: jenkins-data
+          nfs:
+            server: hvm-nfs
+            path: /mnt/nfs/jenkins/data
+        - name: jenkins-backups
+          nfs:
+            server: hvm-nfs
+            path: /mnt/nfs/jenkins/backups
+        - name: docker-socket-volume
+          hostPath:
+            path: /var/run/docker.sock
+            type: File
